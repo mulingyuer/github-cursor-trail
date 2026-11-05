@@ -48,8 +48,8 @@
 		"build:demo": "node scripts/build-demo.mjs",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"lint": "oxlint .",
-		"format": "oxfmt --write . \"!dist/**\" \"!node_modules/**\" \"!build/**\" \"!coverage/**\" \"!**/*.md\" \"!*.md\" \"!**/*.html\" \"!*.html\" \"!pnpm-lock.yaml\"",
-		"format:check": "oxfmt --check . \"!dist/**\" \"!node_modules/**\" \"!build/**\" \"!coverage/**\" \"!**/*.md\" \"!*.md\" \"!**/*.html\" \"!*.html\" \"!pnpm-lock.yaml\"",
+		"format": "oxfmt --write . \"!dist/**\" \"!docs/**\" \"!node_modules/**\" \"!build/**\" \"!coverage/**\" \"!**/*.md\" \"!*.md\" \"!**/*.html\" \"!*.html\" \"!pnpm-lock.yaml\"",
+		"format:check": "oxfmt --check . \"!dist/**\" \"!docs/**\" \"!node_modules/**\" \"!build/**\" \"!coverage/**\" \"!**/*.md\" \"!*.md\" \"!**/*.html\" \"!*.html\" \"!pnpm-lock.yaml\"",
 		"check": "pnpm run typecheck && pnpm run lint && pnpm run format:check",
 		"preview": "vite preview --config vite.demo.config.ts"
 	},

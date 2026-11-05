@@ -4,6 +4,8 @@
 
 与常见猜测不同，原站这个效果**没有用 three.js、GSAP、canvas 或 WebGL**，就是 40 个常驻 `div` + `transform` / `transition` + 一个 `document` 级 `mousemove` 监听。本仓库把它从 React 组件改写成了纯 TypeScript 类，并随构建产物提供可直接打开的演示页。
 
+> ⚠️ **接入前必读：方块尺寸不是一个固定值。** 本库没有写死任何尺寸，格子边长 = 宿主页面中 `[data-grid]` 容器的 `clientWidth / 列数`，每次 `mousemove` 实时计算。容器的 CSS、视口宽度、滚动条都会改变它，符号字号也随之缩放。原站就是这样（借用小游戏容器的宽度），所以这是**刻意复刻的行为，不是 bug**。怎么回事、以及四种控制手段，见 [格子尺寸由页面布局决定](#格子尺寸由页面布局决定)。
+
 本项目采用 [MIT 协议](./LICENSE)，可自由使用、修改与分发。
 
 ---
@@ -15,6 +17,7 @@
 - **行为可控**：网格吸附、白名单 / 黑名单、环形槽位、同格节流，交互元素与正文不触发。
 - **无障碍**：容器与方块带 `aria-hidden`，支持 `prefers-reduced-motion`，可手动 `enable()` / `disable()` / `destroy()`。
 - **一次构建两类产物**：ESM / UMD 脚本库、类型声明、sourcemap，以及引用 UMD 产物的 `dist/demo.html`。
+- **尺寸跟随页面布局**：格子边长由 `[data-grid]` 容器宽度除以列数得出，无硬编码尺寸，可用 `fallbackCellSize` / `gridColumns` / `gridSelector` 精确控制（[接入前必读](#格子尺寸由页面布局决定)）。
 
 ---
 
@@ -177,9 +180,103 @@ UMD 全局名带连字符，**必须用方括号访问**：点访问形式会被
 
 - `trailAnimationArea` — 白名单。鼠标所在元素 `closest()` 得到它才继续。
 - `trailAnimationIgnore` — 黑名单。命中即 `return`。
-- `data-grid` — 可选。组件用这个容器的 `clientWidth` 除以列数得到格子边长；不提供则用 `fallbackCellSize`（默认 17px）。
+- `data-grid` — 可选。组件用这个容器的 `clientWidth` 除以列数得到格子边长；不提供则用 `fallbackCellSize`（默认 17px）。**这个属性会让方块尺寸直接受页面 CSS 影响，接入前务必读 [格子尺寸由页面布局决定](#格子尺寸由页面布局决定)。**
 
 `a` / `button` / 表单控件 / `[role="button"]` / `[contenteditable]` 默认已在黑名单里，**不需要**额外加类。
+
+---
+
+## 格子尺寸由页面布局决定
+
+> ⚠️ **本库没有写死任何方块尺寸。** 格子边长在每次 `mousemove` 时按 `[data-grid]` 容器的 `clientWidth / 列数` 实时计算。容器 CSS 一变，方块、符号字号、装饰网格就跟着变。这是刻意复刻原站的行为，**不是 bug**；接入时若没留意，常表现为「换个窗口宽度，方块就变大 / 变小」。
+
+### 计算规则
+
+```ts
+const gridWidth = grid?.clientWidth ?? 0;        // 宿主页面里 [data-grid] 容器的宽度
+const columns = gridColumns(window.innerWidth);  // 默认 94 / 67
+const size = gridWidth > 0 ? gridWidth / columns : fallbackCellSize;
+```
+
+| 情况 | 格子边长 |
+| --- | --- |
+| 容器存在且可见 | `clientWidth / columns` |
+| 容器不存在 / `display: none` / `clientWidth === 0` | `fallbackCellSize`（默认 `17px`），此时 **`gridColumns` 不参与计算** |
+
+容器的 `getBoundingClientRect().left / top` 同时是网格吸附原点，所以 `margin` / `position` / 页面滚动还会改变方块对齐到哪条网格线；符号字号是 `size × 0.45`，也随之缩放。
+
+### 哪些因素会改变它
+
+| 因素 | 举例 |
+| --- | --- |
+| 容器自身 CSS | `width` / `max-width` / `margin` / `padding` / `box-sizing` / `display` |
+| 视口与滚动条 | `100%` / `100vw`、断点媒体查询、滚动条占掉的十几像素 |
+| 列数配置 | `gridColumns` 默认按 `innerWidth <= 1011` 在 `67 / 94` 间切换 |
+| 容器位置 | 居中 `margin: 0 auto`、相对定位、页面滚动影响网格原点 |
+
+**实测**（同一份 demo，1920px 视口，只改 `[data-grid]` 容器的 CSS）：
+
+| 容器 CSS | `clientWidth` | 格子边长 |
+| --- | --- | --- |
+| `max-width: 1600px; margin: 0 auto` | 1600 | `17.02px` |
+| `max-width: 800px` | 800 | `8.51px` |
+| `display: none` | 0 | `17px`（fallback） |
+
+原站的 `[data-super-mona-grid]` 父级有 `max-width: 1600px`（部分断点还有 `margin: 0 24px`），所以格子在宽屏封顶约 `17px`、1191px 视口约 `12.52px`；窄屏该容器隐藏，直接走 `17px` fallback。demo 里的 `.trail-grid` 就是为了复刻这两条规则，见 [完全对齐原站的配置](#完全对齐原站的配置)。
+
+### 四种控制方式
+
+**① 完全固定（最简单）**：页面上不要出现 `data-grid`，只设 `fallbackCellSize`。
+
+```html
+<!-- 不给任何元素加 data-grid -->
+```
+
+```ts
+new CursorTrail({ fallbackCellSize: 14 }); // 恒定 14px，与视口、布局无关
+```
+
+若页面无法移除该属性，把 `gridSelector` 指向一个不存在的元素，同样会让 `clientWidth` 为 0。
+
+**② 固定网格容器 + 固定列数**：保留网格吸附，同时锁定尺寸。
+
+```html
+<div data-grid style="width: 940px; margin: 0 auto"></div>
+```
+
+```ts
+new CursorTrail({ gridColumns: 67 }); // 940 / 67 ≈ 14px
+```
+
+**③ 按视口反推列数**：想保持响应式，又要把尺寸控制在一定范围。
+
+```ts
+new CursorTrail({
+  gridColumns: (viewportWidth) => Math.max(1, Math.round(viewportWidth / 16)),
+}); // 容器接近视口宽时，格子 ≈ 16px
+```
+
+**④ 分断点切换**（demo 的做法）：宽屏用容器宽度，窄屏把容器 `display: none`，让尺寸退化成 `fallbackCellSize`。
+
+```css
+@media (max-width: 1011px) {
+  [data-grid] {
+    display: none;
+  }
+}
+```
+
+若改过 `gridSelector`，把上面的 `[data-grid]` 换成对应选择器。
+
+### 排查
+
+```ts
+new CursorTrail({
+  onSpawn: (cell) => console.log(cell.size), // 每次点亮时打印实际格子边长
+});
+```
+
+再核对容器宽度：`document.querySelector('[data-grid]')?.clientWidth`。若拿到的是 0 或意外值，问题在页面 CSS，而不是库参数。
 
 ---
 
@@ -272,6 +369,8 @@ document mousemove（全局唯一监听，事件委托）
 
 全部可选，`new CursorTrail(options)` 传入。
 
+> `gridColumns` / `gridSelector` / `fallbackCellSize` 这三项共同决定格子边长，且前两者依赖页面 CSS，详见 [格子尺寸由页面布局决定](#格子尺寸由页面布局决定)。
+
 | 参数 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `areaSelector` | `string` | `'.trailAnimationArea'` | 触发区域白名单 |
@@ -315,7 +414,7 @@ document mousemove（全局唯一监听，事件委托）
 
 ### 完全对齐原站的配置
 
-原站的网格容器叫 `[data-super-mona-grid]`（属于 Super Mona 小游戏），并且额外允许 Primer River 的标题区域：
+原站的网格容器叫 `[data-super-mona-grid]`（属于 Super Mona 小游戏），并且额外允许 Primer River 的标题区域。注意：沿用这个容器，也等于沿用了它父级 `max-width: 1600px` 之类的布局约束，格子会跟着变（[见尺寸章节](#格子尺寸由页面布局决定)）：
 
 ```ts
 new CursorTrail({
@@ -404,7 +503,10 @@ new CursorTrail({
 调 `poolSize`（容量）、`lifetimeMs`（寿命）、`blankProbability`（空格率）。想更长的尾巴就增大 `poolSize` 和 `lifetimeMs[1]`。
 
 **Q：方块尺寸不对？**
-格子边长 = `[data-grid]` 容器的 `clientWidth / gridColumns`。原站的容器是全宽的 `[data-super-mona-grid]`（约等于视口内容宽），配合 `94 / 67` 列得到约 `12.5px` 的方块（1191px 视口）；demo 因此把 `data-grid` 放在 `<body>` 上并沿用默认列数。想固定尺寸就传 `gridColumns: 具体数字` + 把 `fallbackCellSize` 设为想要的值并去掉 `data-grid` 属性。
+先读 [格子尺寸由页面布局决定](#格子尺寸由页面布局决定)：`size = [data-grid].clientWidth / gridColumns`，容器缺失时用 `fallbackCellSize`。最常见的原因是容器 `max-width` / `margin` 让宽度与预期不符，或没有 `data-grid` 却以为 `gridColumns` 会生效。用 `onSpawn: (c) => console.log(c.size)` 看实际值。
+
+**Q：格子大小会受页面 CSS 影响吗？**
+会，详见 [格子尺寸由页面布局决定](#格子尺寸由页面布局决定)。`width` / `max-width` / `margin` / `padding` / `box-sizing` / `display`、视口宽度与滚动条都会改变 `clientWidth`；容器的 `getBoundingClientRect()` 还决定网格原点；符号字号是 `size × 0.45`，也跟着变。
 
 **Q：滚动时方块错位？**
 方块用 `position: fixed` + `clientX/clientY` 定位，滚动时不会跟着内容移动。但寿命只有 100~400ms，实际几乎不可见。若需要贴合滚动内容，可改用 `pageX/pageY` + `position: absolute`。
