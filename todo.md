@@ -405,7 +405,7 @@ jobs:
 
 - [x] `v0.1.0` tag 已推送，`.release-please-manifest.json` 为 `{ ".": "0.1.0" }`；`workflow_dispatch` 输入 `v0.1.0` 后生成同名 GitHub Release。
 - [x] Release 恰好 4 个资产：`.zip`、`.tar.gz`、`.tgz`、`SHA256SUMS.txt`；`sha256sum -c SHA256SUMS.txt` 通过。
-- [ ] zip / tar.gz 内含 `dist/` 7 个文件、`src/index.ts`、`README.md`、`LICENSE`、`package.json`；`dist/demo.html` 解压后双击仍能看到拖尾。
+- [x] zip / tar.gz 内含 `dist/` 7 个文件、`src/index.ts`、`README.md`、`LICENSE`、`package.json`；`dist/demo.html` 解压后双击仍能看到拖尾。
 - [x] `.tgz` 内容与 `npm pack --dry-run` 一致（7 个 `dist/` 产物 + `src/index.ts` + `README.md` + `LICENSE`），文件名版本为 `0.1.0`。
 
 **自动 tag 与连续发版**
@@ -413,8 +413,8 @@ jobs:
 - [ ] 仓库已开启「Allow GitHub Actions to create and approve pull requests」；`RELEASE_PLEASE_TOKEN` 已配置并登记轮换日期，README 已写明回退限制。
 - [ ] 一个 `fix:` / `feat:` 提交后，release-please 开出 release PR，版本号符合 §6.4 推导表，且同时改了 `package.json`、`CHANGELOG.md`、README 的 `@0.1.0`；release PR 的 CI 自动运行并通过。
 - [x] 合并 release PR 后：`release_created=true`，自动创建 `vX.Y.Z` tag 与带 notes 的 GitHub Release，并上传 4 个资产；tag 指向的提交里 `package.json` 版本与 tag 一致。
-- [ ] 连续第二次发版版本号正确递增、CHANGELOG 不重复、不把上一次 Release 误判为未发布。
-- [ ] 资产打包 / 上传失败时，Release 已存在但暂无资产（非 draft 流程的已知行为）；`workflow_dispatch` + `--clobber` 重传能补齐 4 个资产且不产生重复项。
+- [x] 连续第二次发版版本号正确递增、CHANGELOG 不重复、不把上一次 Release 误判为未发布。
+- [x] 资产打包 / 上传失败时，Release 已存在但暂无资产（非 draft 流程的已知行为）；`workflow_dispatch` + `--clobber` 重传能补齐 4 个资产且不产生重复项。
 - [x] 已确认仓库未启用 immutable releases：`release-please-config.json` 中**不含** `draft` / `force-tag-creation`，Release 由 release-please 直接发布后由 `assets` job 追加资产。
 
 **回归 / 文档 / 提交**
@@ -423,6 +423,8 @@ jobs:
 - [x] 零新增依赖（运行时与 devDependencies 都不变）；`dist/` 仍被 `.gitignore` 忽略。
 - [x] README 的「CI 与发布」章节可复现：触发规则、发起发布、下载与校验步骤、手动补传资产；版本行注解存在且 npm 未发布的说明未被误删。
 - [ ] `git status --short` 只剩 §4 的预期变更；提交信息为 `feat: 接入 CI 与自动发布工作流` 且含 `Co-authored-by` trailer；提交后工作区干净。
+
+> 未勾选项说明：按实施时的用户选择跳过 `RELEASE_PLEASE_TOKEN` PAT，release PR 的 CI 采用人工批准而非自动运行；fork PR 与 `concurrency` 取消未做独立实测；远程端到端验证产生了额外的 `fix:` / `docs:` 提交，因此「一次性 feat 提交」未按原计划严格执行，但实现提交本身使用了指定信息与 `Co-authored-by` trailer，最终工作区保持干净。`docs/preview.gif` 按用户确认随 README 预览章节一起提交。
 
 ## 8. 原始需求（逐字保留）
 
