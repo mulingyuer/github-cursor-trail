@@ -156,9 +156,9 @@ UMD 全局名带连字符，**必须用方括号访问**：点访问形式会被
 ### 3. CDN（发布后）
 
 ```html
-<script src="https://unpkg.com/github-cursor-trail@0.1.0/dist/cursor-trail.umd.js"></script> <!-- x-release-please-version -->
+<script src="https://unpkg.com/github-cursor-trail@0.2.0/dist/cursor-trail.umd.js"></script> <!-- x-release-please-version -->
 <!-- 或 -->
-<script src="https://cdn.jsdelivr.net/npm/github-cursor-trail@0.1.0/dist/cursor-trail.umd.js"></script> <!-- x-release-please-version -->
+<script src="https://cdn.jsdelivr.net/npm/github-cursor-trail@0.2.0/dist/cursor-trail.umd.js"></script> <!-- x-release-please-version -->
 <script>
   const { CursorTrail } = window["github-cursor-trail"];
   new CursorTrail();
