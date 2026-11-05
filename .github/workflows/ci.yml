@@ -26,7 +26,7 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --config.minimum-release-age=0
       - run: pnpm check
       - run: pnpm build
       - name: 校验 dist 产物

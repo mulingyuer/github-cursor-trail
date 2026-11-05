@@ -183,7 +183,7 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --config.minimum-release-age=0
       - run: pnpm check
       - run: pnpm build
       - name: 校验 dist 产物
@@ -265,7 +265,7 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --config.minimum-release-age=0
       - run: pnpm check
       - run: pnpm build
       - name: 打包 Release 资产
@@ -394,7 +394,7 @@ jobs:
 
 **CI（推送 / 拉取请求）**
 
-- [ ] 向任意分支 push、向 `main` 开 PR 都会触发 `CI`；日志依次出现 `pnpm install --frozen-lockfile` → `pnpm check` → `pnpm build`，全部通过。
+- [ ] 向任意分支 push、向 `main` 开 PR 都会触发 `CI`；日志依次出现 `pnpm install --frozen-lockfile --config.minimum-release-age=0` → `pnpm check` → `pnpm build`，全部通过。
 - [x] `pnpm check` 在新增 `.github/**` 与两个 JSON 配置存在时仍通过；`pnpm build` 后 `dist/` 恰好 7 个文件，`dist/demo.html` 含相对路径 `./cursor-trail.umd.js` 且不含占位标记。
 - [ ] 每次运行上传 `dist-<sha>` artifact（14 天保留），解压后 7 个文件齐全；PR 运行不创建 Release、不创建 tag、不接触 secret。
 - [ ] fork PR 只读可正常运行；同分支连续 push 时旧运行被 `concurrency` 取消；tag push 不触发 `CI` / `Release`。

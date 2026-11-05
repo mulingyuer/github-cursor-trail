@@ -91,7 +91,7 @@ pnpm build               # 依次执行 build:lib → build:types → build:demo
 
 > 单独执行构建子命令时，请保持 `build:lib → build:types → build:demo` 的顺序；`pnpm build` 会自动串行完成。
 
-> pnpm 12 的 `minimumReleaseAge` 策略偶尔会为新发布的依赖生成 `pnpm-workspace.yaml`。本仓库已提交 `pnpm-lock.yaml`，通常无需处理；若首次安装出现该文件，可删除后改用 `pnpm install --config.minimum-release-age=0`。
+> pnpm 12 的 `minimumReleaseAge` 策略会校验新发布依赖的发布时间；CI / Release 工作流使用 `pnpm install --frozen-lockfile --config.minimum-release-age=0`，避免刚发布的依赖被策略拒绝。本地若偶发生成 `pnpm-workspace.yaml`，可删除后使用同样的安装命令；本仓库不提交该临时文件。
 
 ---
 
@@ -175,7 +175,7 @@ UMD 全局名带连字符，**必须用方括号访问**：点访问形式会被
 
 | 工作流 | 触发时机 | 行为 |
 | --- | --- | --- |
-| `CI` | 任意分支 `push`、向 `main` 开 `pull_request` | 依次执行 `pnpm install --frozen-lockfile` → `pnpm check` → `pnpm build`，校验 7 个 `dist/` 产物，并上传名为 `dist-<sha>` 的 Actions artifact（保留 14 天） |
+| `CI` | 任意分支 `push`、向 `main` 开 `pull_request` | 依次执行 `pnpm install --frozen-lockfile --config.minimum-release-age=0` → `pnpm check` → `pnpm build`，校验 7 个 `dist/` 产物，并上传名为 `dist-<sha>` 的 Actions artifact（保留 14 天） |
 | `Release` | `main` 上的 `push`、管理员手动 `workflow_dispatch` | 由 release-please 处理版本 / tag / Release；仅合并 release PR 或手动补传时打包并上传资产 |
 
 普通 push 与 PR 只生成临时的 **Actions artifact**，不创建 tag、不创建 GitHub Release、不发布 npm。Tag push 不会触发这两条工作流，因为两者都配置了 `branches` 过滤器。第三方的 `uses:` 全部固定到 commit SHA，工作流按 job 最小化 `permissions`，CI 不接触 secret，也不使用 `pull_request_target`。
