@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/mulingyuer/github-cursor-trail/compare/v0.2.0...v0.2.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* 更新发布验收清单 ([7df3664](https://github.com/mulingyuer/github-cursor-trail/commit/7df36642a09b6bce083113e892229be53e62c7c6))
+
 ## [0.2.0](https://github.com/mulingyuer/github-cursor-trail/compare/v0.1.0...v0.2.0) (2026-11-05)
 
 
