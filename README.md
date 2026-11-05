@@ -10,6 +10,14 @@
 
 ---
 
+## 效果预览
+
+![网格吸附式鼠标拖尾效果](./docs/preview.gif)
+
+> 演示：鼠标划过空白区域时，沿网格弹出彩色 ASCII 方块并依次缩回；移到按钮、链接、输入框与正文时不触发。
+
+---
+
 ## 特性
 
 - **零运行时依赖**：没有独立 CSS 文件，样式由 `buildStyles()` 在构造时注入。
@@ -34,6 +42,9 @@
 | `package.json` / `pnpm-lock.yaml` | 工程元数据与锁定依赖 |
 | `.oxfmtrc.json` / `.oxlintrc.json` | oxc 格式化与校验配置 |
 | `.node-version` / `.gitattributes` / `.gitignore` | Node 版本、换行与忽略规则 |
+| `.github/workflows/ci.yml` / `release.yml` | 推送 / PR 校验与 Release 发布工作流 |
+| `release-please-config.json` / `.release-please-manifest.json` | release-please 的 manifest 模式配置与版本锚点 |
+| `CHANGELOG.md` | 由 release-please 自动维护的发布记录 |
 | `LICENSE` | MIT 协议全文 |
 
 ---
@@ -106,7 +117,7 @@ pnpm build               # 依次执行 build:lib → build:types → build:demo
 
 ### 1. 包管理器安装（ESM）
 
-> 以下安装与 CDN 示例按包发布后的用法书写；当前计划只完成本地工程化，不执行发布。
+> 以下安装与 CDN 示例按包发布后的用法书写；**npm 包尚未发布**。当前可先从 GitHub Releases 下载 `.tgz` 本地安装，或下载 `.zip` / `.tar.gz` 直接使用构建产物；CDN 链接需等 npm 正式发布后才会生效。
 
 ```bash
 pnpm add github-cursor-trail
@@ -145,9 +156,9 @@ UMD 全局名带连字符，**必须用方括号访问**：点访问形式会被
 ### 3. CDN（发布后）
 
 ```html
-<script src="https://unpkg.com/github-cursor-trail@0.1.0/dist/cursor-trail.umd.js"></script>
+<script src="https://unpkg.com/github-cursor-trail@0.1.0/dist/cursor-trail.umd.js"></script> <!-- x-release-please-version -->
 <!-- 或 -->
-<script src="https://cdn.jsdelivr.net/npm/github-cursor-trail@0.1.0/dist/cursor-trail.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/github-cursor-trail@0.1.0/dist/cursor-trail.umd.js"></script> <!-- x-release-please-version -->
 <script>
   const { CursorTrail } = window["github-cursor-trail"];
   new CursorTrail();
@@ -155,6 +166,52 @@ UMD 全局名带连字符，**必须用方括号访问**：点访问形式会被
 ```
 
 `dist/demo.html` 使用的就是第 2 种方式：普通脚本 + 相对路径，所以可以直接双击（`file://`）查看，也可以用 `pnpm preview` 或任意静态服务器打开。
+
+---
+
+## CI 与发布
+
+### 触发规则与产物
+
+| 工作流 | 触发时机 | 行为 |
+| --- | --- | --- |
+| `CI` | 任意分支 `push`、向 `main` 开 `pull_request` | 依次执行 `pnpm install --frozen-lockfile` → `pnpm check` → `pnpm build`，校验 7 个 `dist/` 产物，并上传名为 `dist-<sha>` 的 Actions artifact（保留 14 天） |
+| `Release` | `main` 上的 `push`、管理员手动 `workflow_dispatch` | 由 release-please 处理版本 / tag / Release；仅合并 release PR 或手动补传时打包并上传资产 |
+
+普通 push 与 PR 只生成临时的 **Actions artifact**，不创建 tag、不创建 GitHub Release、不发布 npm。Tag push 不会触发这两条工作流，因为两者都配置了 `branches` 过滤器。第三方的 `uses:` 全部固定到 commit SHA，工作流按 job 最小化 `permissions`，CI 不接触 secret，也不使用 `pull_request_target`。
+
+GitHub Release 是持久、带版本号的分发入口，每次发布固定包含 4 个资产：
+
+| 资产 | 内容 |
+| --- | --- |
+| `github-cursor-trail-vX.Y.Z.zip` / `.tar.gz` | `dist/` 7 个文件、`src/index.ts`、`README.md`、`LICENSE`、`package.json` |
+| `github-cursor-trail-X.Y.Z.tgz` | `npm pack` 产物，用于本地安装 |
+| `SHA256SUMS.txt` | 上述三个包的 SHA-256 校验和 |
+
+### 发起一次发布
+
+版本号由 [Conventional Commits](https://www.conventionalcommits.org/) 推导，`package.json` 是唯一版本源；`v0.1.0` 是已登记的基线 tag。
+
+1. 向 `main` 提交 `fix:`（`0.1.0 → 0.1.1`）、`feat:`（`0.1.0 → 0.2.0`）或带 `BREAKING CHANGE:` 的提交（0.x 阶段默认升到 `1.0.0`）。`docs:` / `chore:` / `ci:` 不触发发版；必要时可在提交正文写 `Release-As: X.Y.Z` 指定版本。
+2. release-please 自动开出 release PR，同步 `package.json`、`CHANGELOG.md`、README 中带 `x-release-please-version` 注解的 CDN 版本行及 `.release-please-manifest.json`。
+3. 审核并合并 release PR。合并时 release-please 创建 `vX.Y.Z` tag 与带生成 notes 的 GitHub Release；`assets` job 检出该 tag、重新构建并上传 4 个资产。
+
+仓库管理员需开启 **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**，并配置细粒度 PAT secret `RELEASE_PLEASE_TOKEN`（仅授权本仓库，`metadata: read`、`contents: read/write`、`pull requests: read/write`，登记轮换日期）。PAT 可让 release PR 的 CI 自动运行。仅当该 secret 缺失、工作流回退到 `github.token` 时，release PR 的 CI 才需要在 Actions 页面点击 **Approve workflows to run**。
+
+### 下载、校验与本地安装
+
+从 GitHub Releases 下载对应版本的 4 个资产，在同一目录执行：
+
+```bash
+sha256sum -c SHA256SUMS.txt
+pnpm add ./github-cursor-trail-X.Y.Z.tgz
+```
+
+`.zip` / `.tar.gz` 解压后，`dist/demo.html` 仍通过 `./cursor-trail.umd.js` 引用同目录 UMD 产物，可直接双击打开。npm 正式发布前，`.tgz` 是本地按包安装的主要方式；CDN 链接暂不可验证。
+
+### 手动补传 / 重传资产
+
+若 Release 已存在但资产打包失败，或需要为已有的手工 tag 创建 Release，可在 `main` 上手动运行 **Release** 工作流，输入已推送的 tag（如 `v0.1.0`）。该流程会检出 tag、重新构建，使用 `gh release create --generate-notes --verify-tag` 补建缺失的 Release，再以 `--clobber` 覆盖同名资产；重复运行不会产生重复资产。此入口也用于 `v0.1.0` 基线发版。
 
 ---
 

@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "已有 tag（如 v0.1.0），用于补传 / 重传资产"
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release-please:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  assets:
+    needs: release-please
+    if: ${{ always() && ((needs.release-please.result == 'success' && needs.release-please.outputs.release_created == 'true') || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name || github.event.inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name || github.event.inputs.tag }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm build
+      - name: 打包 Release 资产
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          stage="build/stage"
+          rm -rf build && mkdir -p "$stage"
+          cp -R dist "$stage/dist"
+          mkdir -p "$stage/src"
+          cp src/index.ts "$stage/src/index.ts"
+          cp README.md LICENSE package.json "$stage/"
+          (cd "$stage" && zip -qr "../github-cursor-trail-v${version}.zip" .)
+          (cd "$stage" && tar -czf "../github-cursor-trail-v${version}.tar.gz" .)
+          npm pack --pack-destination build >/dev/null
+          (cd build && sha256sum github-cursor-trail-* > SHA256SUMS.txt)
+      - name: 上传资产到 GitHub Release
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
+          gh release upload "$TAG" \
+            build/github-cursor-trail-*.zip \
+            build/github-cursor-trail-*.tar.gz \
+            build/github-cursor-trail-*.tgz \
+            build/SHA256SUMS.txt --clobber
+          gh release view "$TAG" --json assets --jq '.assets[].name'
