@@ -45,6 +45,7 @@
 | `.github/workflows/ci.yml` / `release.yml` | 推送 / PR 校验与 Release 发布工作流 |
 | `release-please-config.json` / `.release-please-manifest.json` | release-please 的 manifest 模式配置与版本锚点 |
 | `CHANGELOG.md` | 由 release-please 自动维护的发布记录 |
+| `CONTRIBUTING.md` | 日常提交、PR 与自动发布流程 |
 | `LICENSE` | MIT 协议全文 |
 
 ---
@@ -171,6 +172,8 @@ UMD 全局名带连字符，**必须用方括号访问**：点访问形式会被
 
 ## CI 与发布
 
+> 日常提交、PR、release PR 与手动补传资产的完整操作见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+
 ### 触发规则与产物
 
 | 工作流 | 触发时机 | 行为 |
@@ -190,13 +193,13 @@ GitHub Release 是持久、带版本号的分发入口，每次发布固定包�
 
 ### 发起一次发布
 
-版本号由 [Conventional Commits](https://www.conventionalcommits.org/) 推导，`package.json` 是唯一版本源；`v0.1.0` 是已登记的基线 tag。
+版本号由 [Conventional Commits](https://www.conventionalcommits.org/) 推导，`package.json` 是唯一版本源；`v0.1.0` 是已登记的基线 tag，具体版本影响与当前示例见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
-1. 向 `main` 提交 `fix:`（`0.1.0 → 0.1.1`）、`feat:`（`0.1.0 → 0.2.0`）或带 `BREAKING CHANGE:` 的提交（0.x 阶段默认升到 `1.0.0`）。`docs:` / `chore:` / `ci:` 不触发发版；必要时可在提交正文写 `Release-As: X.Y.Z` 指定版本。
+1. 向 `main` 提交 `fix:`（patch）、`feat:`（minor）或带 `BREAKING CHANGE:` / `!` 的提交（0.x 阶段默认升 major）。`docs:` / `chore:` / `ci:` 等不触发发版；必要时可在提交正文写 `Release-As: X.Y.Z` 指定版本。
 2. release-please 自动开出 release PR，同步 `package.json`、`CHANGELOG.md`、README 中带 `x-release-please-version` 注解的 CDN 版本行及 `.release-please-manifest.json`。
 3. 审核并合并 release PR。合并时 release-please 创建 `vX.Y.Z` tag 与带生成 notes 的 GitHub Release；`assets` job 检出该 tag、重新构建并上传 4 个资产。
 
-仓库管理员需开启 **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**，并配置细粒度 PAT secret `RELEASE_PLEASE_TOKEN`（仅授权本仓库，`metadata: read`、`contents: read/write`、`pull requests: read/write`，登记轮换日期）。PAT 可让 release PR 的 CI 自动运行。仅当该 secret 缺失、工作流回退到 `github.token` 时，release PR 的 CI 才需要在 Actions 页面点击 **Approve workflows to run**。
+仓库已开启 **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**；管理员仍应配置细粒度 PAT secret `RELEASE_PLEASE_TOKEN`（仅授权本仓库，`metadata: read`、`contents: read/write`、`pull requests: read/write`，登记轮换日期）。PAT 可让 release PR 的 CI 自动运行。当前该 secret 尚未配置，因此 release PR 的 CI 需要在 Actions 页面点击 **Approve workflows to run**；配置步骤见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
 ### 下载、校验与本地安装
 
@@ -211,7 +214,7 @@ pnpm add ./github-cursor-trail-X.Y.Z.tgz
 
 ### 手动补传 / 重传资产
 
-若 Release 已存在但资产打包失败，或需要为已有的手工 tag 创建 Release，可在 `main` 上手动运行 **Release** 工作流，输入已推送的 tag（如 `v0.1.0`）。该流程会检出 tag、重新构建，使用 `gh release create --generate-notes --verify-tag` 补建缺失的 Release，再以 `--clobber` 覆盖同名资产；重复运行不会产生重复资产。此入口也用于 `v0.1.0` 基线发版。
+若 Release 已存在但资产打包失败，或需要为已有的手工 tag 创建 Release，可在 `main` 上手动运行 **Release** 工作流，输入已推送的 tag（如 `v0.2.1`）。该流程会检出 tag、重新构建，使用 `gh release create --generate-notes --verify-tag` 补建缺失的 Release，再以 `--clobber` 覆盖同名资产；重复运行不会产生重复资产。此入口也用于基线发版与失败重传。
 
 ---
 
