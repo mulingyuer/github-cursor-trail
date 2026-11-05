@@ -52,15 +52,30 @@ corepack pnpm -v  # 12.15.0
 
 > 若新终端未自动应用 fnm，按 fnm 文档配置 `--use-on-cd` shell 集成；或在该终端执行 `fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression` 后再 `fnm use 24.22`。
 
-常用命令：
+常用命令（以下命令覆盖 `package.json` 中全部 `scripts`；`pnpm install` 为依赖安装）：
 
 ```bash
-pnpm install   # 安装 devDependencies
-pnpm dev       # 打开 http://localhost:5173/demo.html，调试 src/index.ts
-pnpm check     # typecheck + lint + format:check
-pnpm build     # 一次生成脚本库、类型声明和 demo
-pnpm preview   # 预览 dist/demo.html（构建产物）
+pnpm install             # 安装 devDependencies
+
+# 开发 / 预览
+pnpm dev                 # 启动开发服务器并打开 http://localhost:5173/demo.html，调试 src/index.ts
+pnpm preview             # 预览 dist/demo.html（构建产物）
+
+# 类型检查 / 校验 / 格式化
+pnpm typecheck           # tsc --noEmit，仅检查类型，不输出文件
+pnpm lint                # 使用 oxlint 做静态检查
+pnpm format              # 使用 oxfmt 按配置写入格式化结果
+pnpm run format:check    # 使用 oxfmt 仅检查格式，不写入文件
+pnpm check               # 依次执行 typecheck + lint + format:check
+
+# 构建
+pnpm run build:lib       # 构建 ESM / UMD 脚本库及 sourcemap
+pnpm run build:types     # 生成 .d.ts 与 .d.ts.map
+pnpm run build:demo      # 由 demo.html 生成 dist/demo.html（须先执行 build:lib）
+pnpm build               # 依次执行 build:lib → build:types → build:demo
 ```
+
+> 单独执行构建子命令时，请保持 `build:lib → build:types → build:demo` 的顺序；`pnpm build` 会自动串行完成。
 
 > pnpm 12 的 `minimumReleaseAge` 策略偶尔会为新发布的依赖生成 `pnpm-workspace.yaml`。本仓库已提交 `pnpm-lock.yaml`，通常无需处理；若首次安装出现该文件，可删除后改用 `pnpm install --config.minimum-release-age=0`。
 
@@ -279,7 +294,7 @@ document mousemove（全局唯一监听，事件委托）
 | `zIndex` | `number` | `2` | 方块层级 |
 | `transitionMs` | `number` | `100` | 弹出 / 缩回时长（ms） |
 | `transitionEasing` | `string` | `cubic-bezier(.3,.41,.04,1.01)` | 缓动曲线 |
-| `glyphColor` | `string` | `'#fff'` | 符号颜色 |
+| `glyphColor` | `string` | `'inherit'` | 符号颜色，默认继承页面文字色（原站行为） |
 | `onSpawn` | `(cell) => void` | — | 每点亮一格时回调，可用来埋点 |
 
 默认黑名单：
@@ -338,16 +353,15 @@ new CursorTrail({
   left: 0;
   z-index: 2;
   text-align: center;
-  line-height: 1;
+  line-height: 1.5;
   pointer-events: none;
 }
 
 .ct-color {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 100%;
   height: 100%;
+  color: inherit;
   transform: scale(0);
   transition: transform 100ms cubic-bezier(.3,.41,.04,1.01);
 }
@@ -370,6 +384,7 @@ new CursorTrail({
 | 网格列数常量 `94 / 67`，断点 `1011` | 同 |
 | 6 色 + 11 个 ASCII 符号，30% 空格 | 同，全部可配置 |
 | CSS Modules（`.CursorTrailAnimation_Block__…`） | 可配置前缀的普通类名 |
+| 方块为 `block` 布局、`line-height: 1.5`，字体与文字色继承页面 | 同，`glyphColor` / `injectStyles: false` 可覆盖 |
 | `ssr: false` 懒加载 | 构造时检测 `window` / `document`，SSR 下安静退化为空实例 |
 | — | 新增 `enable()` / `disable()` / `destroy()`、同容器防重复实例化、`onSpawn` |
 
@@ -389,7 +404,7 @@ new CursorTrail({
 调 `poolSize`（容量）、`lifetimeMs`（寿命）、`blankProbability`（空格率）。想更长的尾巴就增大 `poolSize` 和 `lifetimeMs[1]`。
 
 **Q：方块尺寸不对？**
-格子边长 = `[data-grid]` 容器的 `clientWidth / gridColumns`。想固定尺寸就传 `gridColumns: 具体数字` + 把 `fallbackCellSize` 设为想要的值并去掉 `data-grid` 属性。
+格子边长 = `[data-grid]` 容器的 `clientWidth / gridColumns`。原站的容器是全宽的 `[data-super-mona-grid]`（约等于视口内容宽），配合 `94 / 67` 列得到约 `12.5px` 的方块（1191px 视口）；demo 因此把 `data-grid` 放在 `<body>` 上并沿用默认列数。想固定尺寸就传 `gridColumns: 具体数字` + 把 `fallbackCellSize` 设为想要的值并去掉 `data-grid` 属性。
 
 **Q：滚动时方块错位？**
 方块用 `position: fixed` + `clientX/clientY` 定位，滚动时不会跟着内容移动。但寿命只有 100~400ms，实际几乎不可见。若需要贴合滚动内容，可改用 `pageX/pageY` + `position: absolute`。
@@ -411,6 +426,6 @@ npm pack --dry-run   # 仅本地校验 tarball 内容，不执行发布
 
 - `pnpm dev` 会把 `src/index.ts` 以 ESM 注入 `demo.html`，修改源码可热更新；`dist/demo.html` 则只引用构建后的 UMD 产物。
 - 直接双击 `dist/demo.html`（`file://`）或通过 `pnpm preview` / 任意静态服务器打开，都能看到拖尾；UMD 普通脚本不受模块 CORS 限制。
-- 演示页包含按钮、链接、输入框、正文段落、未标记白名单的页脚，可逐一验证黑名单 / 白名单；控制区可查看生成计数、停用 / 启用和销毁实例。
+- 演示页包含按钮、链接、输入框、正文段落、未标记白名单的页脚，可逐一验证黑名单 / 白名单；控制区可查看累计点亮次数、停用 / 启用和销毁实例。
 - `npm pack --dry-run` 应显示 `dist/` 7 个产物、`src/index.ts`、`README.md` 与 `LICENSE`；`.gitignore` 忽略 `dist/` 不影响 `files` 白名单打包。
 - 建议至少在 Chromium 与一处非 Chromium 浏览器各打开一次 demo，确认拖尾、计数、启停与销毁均正常。

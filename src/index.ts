@@ -167,7 +167,10 @@ export interface CursorTrailOptions {
 	/** 过渡缓动曲线。 @default 'cubic-bezier(.3,.41,.04,1.01)' */
 	transitionEasing?: string;
 
-	/** 方块内符号的颜色。 @default '#fff' */
+	/**
+	 * 方块内符号的颜色。原站不设置该属性，直接继承页面文字色。
+	 * @default 'inherit'
+	 */
 	glyphColor?: string;
 
 	/** 每点亮一个方块时回调，便于埋点或调试。 */
@@ -280,7 +283,7 @@ function resolveOptions(input: CursorTrailOptions): ResolvedOptions {
 		zIndex: input.zIndex ?? 2,
 		transitionMs: input.transitionMs ?? 100,
 		transitionEasing: input.transitionEasing ?? "cubic-bezier(.3,.41,.04,1.01)",
-		glyphColor: input.glyphColor ?? "#fff",
+		glyphColor: input.glyphColor ?? "inherit",
 		onSpawn: input.onSpawn,
 	};
 }
@@ -302,18 +305,14 @@ function buildStyles(o: ResolvedOptions): string {
   left: 0;
   z-index: ${o.zIndex};
   text-align: center;
-  line-height: 1;
+  line-height: 1.5;
   pointer-events: none;
 }
 .${p}-color {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 100%;
   height: 100%;
   color: ${o.glyphColor};
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-weight: 500;
   transform: scale(0);
   transition: transform ${o.transitionMs}ms ${o.transitionEasing};
 }

@@ -48,8 +48,8 @@
     position: relative;
     height: 300px;
     border-top: 1px dashed #d8dee4;
-    background-image: radial-gradient(#d8dee4 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-image: radial-gradient(#d8dee4 0.6px, transparent 0.6px);
+    background-size: var(--ct-cell, 12.5px) var(--ct-cell, 12.5px);
   }
   .stage-hint {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -70,12 +70,13 @@
   .note { font-size: 13px !important; color: #8c959f !important; margin-bottom: 0 !important; }
   .controls { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
   .controls p { margin: 0; color: #59636e; font-size: 14px; }
+  .controls .note { margin-top: 6px; }
   .controls strong { color: #1f2328; font-variant-numeric: tabular-nums; }
   .foot { margin-top: 28px; padding: 22px 0; border-top: 1px solid #d8dee4; color: #8c959f; font-size: 13px; }
   code { font: 12px/1.5 ui-monospace, Consolas, monospace; background: #f0f3f6; padding: 2px 5px; border-radius: 4px; }
 </style>
 </head>
-<body>
+<body data-grid>
 <div class="wrap">
 
   <div class="top">
@@ -84,7 +85,7 @@
     <p class="sub">在下方虚线框内的留白区域滑动鼠标。方块会吸附到网格上依次亮起又熄灭；按钮、链接、正文段落和框外区域都不会触发。</p>
   </div>
 
-  <section class="hero trailAnimationArea" data-grid>
+  <section class="hero trailAnimationArea">
     <span class="badge">.trailAnimationArea</span>
     <h2>Universe 2026</h2>
     <p class="lead">鼠标滑过标题文字时不会弹出方块，但滑过它周围的空白就会 —— 因为纯文本叶子节点被主动跳过了。</p>
@@ -116,7 +117,8 @@
   <section class="controls">
     <div>
       <h3>运行时控制</h3>
-      <p>已生成方块 <strong id="count">0</strong> 个 · 状态 <strong id="status">运行中</strong></p>
+      <p>累计点亮 <strong id="count">0</strong> 次 · 状态 <strong id="status">运行中</strong></p>
+      <p class="note">40 个常驻方块循环复用，该数字为累计点亮次数，不是 DOM 节点数。</p>
     </div>
     <div class="row">
       <button class="btn" id="btn-toggle" type="button">停用</button>
@@ -143,11 +145,16 @@
     initialized = true;
 
     const { CursorTrail } = window["github-cursor-trail"];
+    // 对齐原站：body 作为全宽网格容器，列数用库默认的 94 / 67（原站取值）。
+    let lastCellSize = 0;
     const trail = new CursorTrail({
-      gridColumns: 28,
-      onSpawn: function () {
+      onSpawn: function (cell) {
         spawned += 1;
         countEl.textContent = String(spawned);
+        if (cell.size !== lastCellSize) {
+          lastCellSize = cell.size;
+          document.documentElement.style.setProperty("--ct-cell", cell.size + "px");
+        }
       },
     });
 
