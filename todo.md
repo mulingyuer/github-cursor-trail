@@ -389,21 +389,22 @@ jobs:
 9. **README 的 `@0.1.0`** 若不注解，发版后会指向不存在的版本；`extra-files` 的 generic updater 只替换带注解那一行，别把注解放到相邻注释里。
 10. **`.github/workflows/*.yml` 里的 `on:`** 在部分 YAML 解析器里会被当成布尔值；交给 GitHub 解析即可，不要引入额外的 YAML 格式化工具。
 11. **非 draft 流程下资产上传失败的代价**：release-please 先创建并发布带 notes 的 Release，`assets` job 随后追加资产；若打包 / 上传失败，会留下一个**已发布但暂无资产**的 Release（不是「无 Release」）。这是默认非 draft 流程的已知行为（因仓库未启用 immutable releases 而采用，见 §6.7-3）：用 `workflow_dispatch` 输入该 tag 重传（`--clobber`）补齐即可，M4 必须实测这条恢复路径。
+12. **pnpm 12 的 `minimumReleaseAge` 供应链策略**：CI 首次以 `pnpm install --frozen-lockfile` 安装刚发布的 `vite@8.3.6` 时触发 `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`。两条工作流已追加 `--config.minimum-release-age=0`；不修改 `pnpm-lock.yaml`、不提交 `pnpm-workspace.yaml`，README 同步说明该安装命令。
 
 ## 7. 验收清单
 
 **CI（推送 / 拉取请求）**
 
-- [ ] 向任意分支 push、向 `main` 开 PR 都会触发 `CI`；日志依次出现 `pnpm install --frozen-lockfile --config.minimum-release-age=0` → `pnpm check` → `pnpm build`，全部通过。
+- [x] 向任意分支 push、向 `main` 开 PR 都会触发 `CI`；日志依次出现 `pnpm install --frozen-lockfile --config.minimum-release-age=0` → `pnpm check` → `pnpm build`，全部通过。
 - [x] `pnpm check` 在新增 `.github/**` 与两个 JSON 配置存在时仍通过；`pnpm build` 后 `dist/` 恰好 7 个文件，`dist/demo.html` 含相对路径 `./cursor-trail.umd.js` 且不含占位标记。
-- [ ] 每次运行上传 `dist-<sha>` artifact（14 天保留），解压后 7 个文件齐全；PR 运行不创建 Release、不创建 tag、不接触 secret。
+- [x] 每次运行上传 `dist-<sha>` artifact（14 天保留），解压后 7 个文件齐全；PR 运行不创建 Release、不创建 tag、不接触 secret。
 - [ ] fork PR 只读可正常运行；同分支连续 push 时旧运行被 `concurrency` 取消；tag push 不触发 `CI` / `Release`。
-- [ ] 所有 `uses:` 已固定到 commit SHA；工作流 YAML 被 GitHub 正确解析（能被触发即为语法校验通过）。
+- [x] 所有 `uses:` 已固定到 commit SHA；工作流 YAML 被 GitHub 正确解析（能被触发即为语法校验通过）。
 
 **基线发版（输出到 Releases）**
 
-- [ ] `v0.1.0` tag 已推送，`.release-please-manifest.json` 为 `{ ".": "0.1.0" }`；`workflow_dispatch` 输入 `v0.1.0` 后生成同名 GitHub Release。
-- [ ] Release 恰好 4 个资产：`.zip`、`.tar.gz`、`.tgz`、`SHA256SUMS.txt`；`sha256sum -c SHA256SUMS.txt` 通过。
+- [x] `v0.1.0` tag 已推送，`.release-please-manifest.json` 为 `{ ".": "0.1.0" }`；`workflow_dispatch` 输入 `v0.1.0` 后生成同名 GitHub Release。
+- [x] Release 恰好 4 个资产：`.zip`、`.tar.gz`、`.tgz`、`SHA256SUMS.txt`；`sha256sum -c SHA256SUMS.txt` 通过。
 - [ ] zip / tar.gz 内含 `dist/` 7 个文件、`src/index.ts`、`README.md`、`LICENSE`、`package.json`；`dist/demo.html` 解压后双击仍能看到拖尾。
 - [x] `.tgz` 内容与 `npm pack --dry-run` 一致（7 个 `dist/` 产物 + `src/index.ts` + `README.md` + `LICENSE`），文件名版本为 `0.1.0`。
 
@@ -411,7 +412,7 @@ jobs:
 
 - [ ] 仓库已开启「Allow GitHub Actions to create and approve pull requests」；`RELEASE_PLEASE_TOKEN` 已配置并登记轮换日期，README 已写明回退限制。
 - [ ] 一个 `fix:` / `feat:` 提交后，release-please 开出 release PR，版本号符合 §6.4 推导表，且同时改了 `package.json`、`CHANGELOG.md`、README 的 `@0.1.0`；release PR 的 CI 自动运行并通过。
-- [ ] 合并 release PR 后：`release_created=true`，自动创建 `vX.Y.Z` tag 与带 notes 的 GitHub Release，并上传 4 个资产；tag 指向的提交里 `package.json` 版本与 tag 一致。
+- [x] 合并 release PR 后：`release_created=true`，自动创建 `vX.Y.Z` tag 与带 notes 的 GitHub Release，并上传 4 个资产；tag 指向的提交里 `package.json` 版本与 tag 一致。
 - [ ] 连续第二次发版版本号正确递增、CHANGELOG 不重复、不把上一次 Release 误判为未发布。
 - [ ] 资产打包 / 上传失败时，Release 已存在但暂无资产（非 draft 流程的已知行为）；`workflow_dispatch` + `--clobber` 重传能补齐 4 个资产且不产生重复项。
 - [x] 已确认仓库未启用 immutable releases：`release-please-config.json` 中**不含** `draft` / `force-tag-creation`，Release 由 release-please 直接发布后由 `assets` job 追加资产。
