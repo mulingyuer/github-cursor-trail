@@ -1,0 +1,47 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["typescript", "unicorn", "oxc"],
+	"categories": {
+		"correctness": "error",
+		"suspicious": "warn"
+	},
+	"env": {
+		"browser": true,
+		"es2020": true
+	},
+	"rules": {
+		"no-unused-vars": [
+			"error",
+			{
+				"argsIgnorePattern": "^_",
+				"varsIgnorePattern": "^_",
+				"caughtErrorsIgnorePattern": "^_"
+			}
+		],
+		"typescript/no-explicit-any": "off",
+		"typescript/no-extraneous-class": [
+			"error",
+			{
+				"allowWithDecorator": true
+			}
+		],
+		"unicorn/filename-case": [
+			"warn",
+			{
+				"cases": {
+					"kebabCase": true,
+					"camelCase": true,
+					"pascalCase": true
+				}
+			}
+		]
+	},
+	"ignorePatterns": [
+		"**/node_modules/**",
+		"**/dist/**",
+		"**/build/**",
+		"**/coverage/**",
+		"**/*.umd.js",
+		"pnpm-lock.yaml"
+	]
+}
