@@ -24,7 +24,7 @@ flowchart LR
 - `package.json` 的 `version` 是唯一版本源；不要手改版本号。
 - 仓库已开启 **Allow GitHub Actions to create and approve pull requests**。
 - 当前**未配置** `RELEASE_PLEASE_TOKEN` secret，因此 release PR 的 CI 需要通过 **Approve workflows to run** 人工批准；配置 PAT 后可自动运行。
-- npm 尚未发布；CDN 示例需等 npm 正式发布后才生效。当前可从 GitHub Releases 下载 `.tgz` 本地安装。
+- npm 包 `github-cursor-trail` 已发布到官方源；固定版本 CDN 示例已生效，也可从 GitHub Releases 下载 `.tgz` 离线本地安装。
 
 ## 1. 开始改动前
 

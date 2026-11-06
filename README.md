@@ -118,7 +118,7 @@ pnpm build               # 依次执行 build:lib → build:types → build:demo
 
 ### 1. 包管理器安装（ESM）
 
-> 以下安装与 CDN 示例按包发布后的用法书写；**npm 包尚未发布**。当前可先从 GitHub Releases 下载 `.tgz` 本地安装，或下载 `.zip` / `.tar.gz` 直接使用构建产物；CDN 链接需等 npm 正式发布后才会生效。
+> `github-cursor-trail` 已发布到 npm 官方源，以下安装与固定版本 CDN 示例可直接使用。也可从 GitHub Releases 下载对应版本的 `.tgz` 本地安装，或使用 `.zip` / `.tar.gz` 直接使用构建产物。
 
 ```bash
 pnpm add github-cursor-trail
@@ -154,7 +154,7 @@ trail.destroy();
 
 UMD 全局名带连字符，**必须用方括号访问**：点访问形式会被解析成减法表达式。该全局是命名空间对象，不会额外挂载同名的全局类构造器。
 
-### 3. CDN（发布后）
+### 3. CDN
 
 ```html
 <script src="https://unpkg.com/github-cursor-trail@0.2.1/dist/cursor-trail.umd.js"></script> <!-- x-release-please-version -->
@@ -210,7 +210,7 @@ sha256sum -c SHA256SUMS.txt
 pnpm add ./github-cursor-trail-X.Y.Z.tgz
 ```
 
-`.zip` / `.tar.gz` 解压后，`dist/demo.html` 仍通过 `./cursor-trail.umd.js` 引用同目录 UMD 产物，可直接双击打开。npm 正式发布前，`.tgz` 是本地按包安装的主要方式；CDN 链接暂不可验证。
+`.zip` / `.tar.gz` 解压后，`dist/demo.html` 仍通过 `./cursor-trail.umd.js` 引用同目录 UMD 产物，可直接双击打开。npm 已发布，可直接从 npm 安装包管理器版本；Release 中的 `.tgz` 适合离线或按固定版本本地安装，固定版本 CDN 链接也可直接使用。
 
 ### 手动补传 / 重传资产
 
