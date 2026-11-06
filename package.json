@@ -40,6 +40,10 @@
 			"default": "./dist/cursor-trail.js"
 		}
 	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
 	"scripts": {
 		"dev": "vite --config vite.demo.config.ts",
 		"build": "pnpm run build:lib && pnpm run build:types && pnpm run build:demo",
